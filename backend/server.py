@@ -601,7 +601,7 @@ async def get_today_analytics(current_admin: AdminUser = Depends(require_role(["
 
 # User Management (Admin only)
 @api_router.get("/users", response_model=List[dict])
-async def get_all_users(current_admin: AdminUser = AdminOnly):
+async def get_all_users(current_admin: AdminUser = Depends(require_role(["admin"]))):
     users = await db.admin_users.find().to_list(1000)
     return [{
         "id": user["id"],
