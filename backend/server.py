@@ -400,9 +400,10 @@ async def delete_menu_item(item_id: str, current_admin: AdminUser = AdminOrManag
     await db.menu_items.update_one({"id": item_id}, {"$set": {"available": False}})
     return {"message": "Menu item deleted successfully"}
 
-# Order Management
+# Order Management with role-based access
 @api_router.post("/orders", response_model=Order)
 async def create_order(order_data: OrderCreate):
+    # Public endpoint - customers can create orders
     # Calculate totals
     subtotal = 0
     for cart_item in order_data.items:
@@ -440,22 +441,66 @@ async def create_order(order_data: OrderCreate):
     return order
 
 @api_router.get("/orders", response_model=List[Order])
-async def get_orders(current_admin: AdminUser = Depends(get_current_admin)):
-    orders = await db.orders.find().sort("created_at", -1).to_list(1000)
+async def get_orders(current_admin: AdminUser = AllRoles):
+    # Role-based filtering
+    if current_admin.role == "kitchen":
+        # Kitchen only sees orders that need preparation
+        orders = await db.orders.find({
+            "status": {"$in": ["received", "confirmed", "preparing", "ready"]}
+        }).sort("created_at", -1).to_list(1000)
+    elif current_admin.role == "delivery":
+        # Delivery only sees orders ready for delivery
+        orders = await db.orders.find({
+            "status": {"$in": ["ready", "on_route", "delivered"]}
+        }).sort("created_at", -1).to_list(1000)
+    else:
+        # Admin and Manager see all orders
+        orders = await db.orders.find().sort("created_at", -1).to_list(1000)
+    
     return [Order(**order) for order in orders]
 
 @api_router.get("/orders/{order_id}", response_model=Order)
 async def get_order(order_id: str):
+    # Public endpoint for order tracking
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return Order(**order)
 
 @api_router.put("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status_update: OrderStatusUpdate, current_admin: AdminUser = Depends(get_current_admin)):
+async def update_order_status(order_id: str, status_update: OrderStatusUpdate, current_admin: AdminUser = AllRoles):
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Role-based status update restrictions
+    current_status = order["status"]
+    new_status = status_update.status
+    
+    # Kitchen staff can only update certain statuses
+    if current_admin.role == "kitchen":
+        allowed_transitions = {
+            "received": ["confirmed", "cancelled"],
+            "confirmed": ["preparing", "cancelled"],
+            "preparing": ["ready", "cancelled"]
+        }
+        if current_status not in allowed_transitions or new_status not in allowed_transitions[current_status]:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Kitchen staff cannot change status from {current_status} to {new_status}"
+            )
+    
+    # Delivery staff can only update delivery-related statuses
+    elif current_admin.role == "delivery":
+        allowed_transitions = {
+            "ready": ["on_route"],
+            "on_route": ["delivered"]
+        }
+        if current_status not in allowed_transitions or new_status not in allowed_transitions[current_status]:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Delivery staff cannot change status from {current_status} to {new_status}"
+            )
     
     update_data = {
         "status": status_update.status,
@@ -484,8 +529,24 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, c
     return {"message": "Order status updated successfully"}
 
 @api_router.get("/orders/status/{status}", response_model=List[Order])
-async def get_orders_by_status(status: str, current_admin: AdminUser = Depends(get_current_admin)):
-    orders = await db.orders.find({"status": status}).sort("created_at", -1).to_list(1000)
+async def get_orders_by_status(status: str, current_admin: AdminUser = AllRoles):
+    # Role-based filtering combined with status filter
+    query = {"status": status}
+    
+    if current_admin.role == "kitchen":
+        # Kitchen only sees preparation-related statuses
+        if status not in ["received", "confirmed", "preparing", "ready"]:
+            return []
+        orders = await db.orders.find(query).sort("created_at", -1).to_list(1000)
+    elif current_admin.role == "delivery":
+        # Delivery only sees delivery-related statuses
+        if status not in ["ready", "on_route", "delivered"]:
+            return []
+        orders = await db.orders.find(query).sort("created_at", -1).to_list(1000)
+    else:
+        # Admin and Manager see all
+        orders = await db.orders.find(query).sort("created_at", -1).to_list(1000)
+    
     return [Order(**order) for order in orders]
 
 # Delivery Person Management
