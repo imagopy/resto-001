@@ -818,6 +818,121 @@ const Checkout = () => {
   );
 };
 
+const Login = () => {
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const result = await login(credentials.username, credentials.password);
+    
+    if (result.success) {
+      navigate('/admin');
+    } else {
+      setError(result.error);
+    }
+    
+    setLoading(false);
+  };
+
+  const handleInitializeAdmin = async () => {
+    try {
+      const response = await axios.post(`${API}/auth/init-admin`);
+      alert('Admin por defecto creado: username="admin", password="admin123"');
+    } catch (error) {
+      if (error.response?.status === 200) {
+        alert('Admin por defecto ya existe: username="admin", password="admin123"');
+      } else {
+        alert('Error al crear admin por defecto');
+      }
+    }
+  };
+
+  return (
+    <div className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md w-full space-y-8 p-8">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-10 w-10 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Acceso Administrativo</h2>
+          <p className="text-gray-600">Ingresa con tu cuenta de administrador</p>
+        </div>
+
+        <div className="bg-white p-8 rounded-2xl shadow-lg">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Usuario
+              </label>
+              <input
+                type="text"
+                required
+                value={credentials.username}
+                onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="admin"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                required
+                value={credentials.password}
+                onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 disabled:opacity-50 text-white py-3 rounded-xl font-semibold transition-all duration-300"
+            >
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            </button>
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-center text-sm text-gray-600 mb-4">
+              ¿Primera vez? Inicializa el admin por defecto:
+            </p>
+            <button
+              onClick={handleInitializeAdmin}
+              className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100 py-3 rounded-xl font-semibold transition-all duration-300"
+            >
+              Crear Admin por Defecto
+            </button>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <Link to="/" className="text-red-600 hover:text-red-700 font-medium">
+            ← Volver al inicio
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TrackOrder = () => {
   const [orderId, setOrderId] = useState('');
   const [order, setOrder] = useState(null);
