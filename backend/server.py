@@ -1,3 +1,28 @@
+"""
+PizzApp Backend - Sistema de Gestión de Pizzería
+
+Este módulo contiene la API completa para PizzApp, un sistema de gestión de pizzería
+con autenticación basada en roles, gestión de pedidos en tiempo real y dashboards
+especializados.
+
+Tecnologías utilizadas:
+- FastAPI: Framework web asíncrono
+- MongoDB: Base de datos NoSQL
+- JWT: Autenticación mediante tokens
+- WebSockets: Comunicación en tiempo real
+- Bcrypt: Hashing seguro de contraseñas
+
+Roles del sistema:
+- Admin: Acceso completo al sistema
+- Manager: Gestión operativa
+- Kitchen: Solo gestión de cocina
+- Delivery: Solo gestión de entregas
+
+Autor: PizzApp Development Team
+Fecha: 2025
+Versión: 1.0.0
+"""
+
 from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
