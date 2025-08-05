@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Plus, Minus, Clock, MapPin, Phone, User, Star, Truck, ChefHat, Package, CheckCircle, ArrowLeft, Menu as MenuIcon, X } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Clock, MapPin, Phone, User, Star, Truck, ChefHat, Package, CheckCircle, ArrowLeft, Menu as MenuIcon, X, LogOut, Lock } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
