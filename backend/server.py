@@ -370,31 +370,33 @@ async def initialize_default_admin():
         "existing_users": existing_users
     }
 
-# Menu Management
+# Menu Management (Admin/Manager only)
 @api_router.post("/menu", response_model=MenuItem)
-async def create_menu_item(item: MenuItemCreate):
+async def create_menu_item(item: MenuItemCreate, current_admin: AdminUser = AdminOrManager):
     menu_item = MenuItem(**item.dict())
     await db.menu_items.insert_one(menu_item.dict())
     return menu_item
 
 @api_router.get("/menu", response_model=List[MenuItem])
 async def get_menu():
+    # Public endpoint - no auth required
     menu_items = await db.menu_items.find({"available": True}).to_list(1000)
     return [MenuItem(**item) for item in menu_items]
 
 @api_router.get("/menu/category/{category}", response_model=List[MenuItem])
 async def get_menu_by_category(category: str):
+    # Public endpoint - no auth required
     menu_items = await db.menu_items.find({"category": category, "available": True}).to_list(1000)
     return [MenuItem(**item) for item in menu_items]
 
 @api_router.put("/menu/{item_id}", response_model=MenuItem)
-async def update_menu_item(item_id: str, item: MenuItemCreate):
+async def update_menu_item(item_id: str, item: MenuItemCreate, current_admin: AdminUser = AdminOrManager):
     updated_item = MenuItem(id=item_id, **item.dict())
     await db.menu_items.replace_one({"id": item_id}, updated_item.dict())
     return updated_item
 
 @api_router.delete("/menu/{item_id}")
-async def delete_menu_item(item_id: str):
+async def delete_menu_item(item_id: str, current_admin: AdminUser = AdminOrManager):
     await db.menu_items.update_one({"id": item_id}, {"$set": {"available": False}})
     return {"message": "Menu item deleted successfully"}
 
