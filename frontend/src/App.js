@@ -161,7 +161,7 @@ const Header = ({ cartItemsCount, onToggleMenu, showMenu }) => {
                   className="p-2 text-gray-700 hover:text-red-600 transition-colors"
                   title="Cerrar Sesión"
                 >
-                  <LogOut className="h-5 w-, " />
+                  <LogOut className="h-5 w-5" />
                 </button>
               </div>
             )}
