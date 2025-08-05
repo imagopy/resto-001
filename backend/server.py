@@ -632,7 +632,7 @@ async def create_user(user_data: AdminUserCreate, current_admin: AdminUser = Dep
     return {"message": "User created successfully"}
 
 @api_router.put("/users/{user_id}/role")
-async def update_user_role(user_id: str, new_role: str, current_admin: AdminUser = AdminOnly):
+async def update_user_role(user_id: str, new_role: str, current_admin: AdminUser = Depends(require_role(["admin"]))):
     valid_roles = ["admin", "manager", "kitchen", "delivery"]
     if new_role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
