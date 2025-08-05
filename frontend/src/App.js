@@ -1,3 +1,21 @@
+/**
+ * PizzApp Frontend - Sistema de Gestión de Pizzería
+ * 
+ * Aplicación React moderna para gestión de pizzería con autenticación
+ * basada en roles, carrito de compras y dashboards especializados.
+ * 
+ * Características principales:
+ * - Autenticación JWT con roles (Admin, Manager, Kitchen, Delivery)
+ * - Carrito de compras con persistencia local
+ * - Dashboards diferenciados por rol
+ * - Seguimiento en tiempo real de pedidos
+ * - Diseño responsive con Tailwind CSS
+ * 
+ * @author PizzApp Development Team
+ * @version 1.0.0
+ * @since 2025
+ */
+
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
@@ -7,9 +25,20 @@ import { ShoppingCart, Plus, Minus, Clock, MapPin, Phone, User, Star, Truck, Che
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Authentication Context
+/**
+ * Contexto de autenticación para manejo global del estado de usuario
+ * Proporciona funciones de login, logout y verificación de roles
+ */
 const AuthContext = createContext();
 
+/**
+ * Proveedor de contexto de autenticación
+ * Gestiona el estado global de autenticación y roles de usuario
+ * 
+ * @param {Object} props - Props del componente
+ * @param {React.ReactNode} props.children - Componentes hijos
+ * @returns {React.Component} Proveedor de contexto de autenticación
+ */
 const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
@@ -19,6 +48,10 @@ const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
+  /**
+   * Verifica el estado de autenticación del usuario al cargar la aplicación
+   * Intenta obtener información del usuario desde el token almacenado
+   */
   const checkAuthStatus = async () => {
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -37,6 +70,13 @@ const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
+  /**
+   * Inicia sesión de usuario con credenciales
+   * 
+   * @param {string} username - Nombre de usuario
+   * @param {string} password - Contraseña
+   * @returns {Object} Resultado del login con estado de éxito
+   */
   const login = async (username, password) => {
     try {
       const response = await axios.post(`${API}/auth/login`, {
@@ -63,12 +103,22 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Cierra la sesión del usuario actual
+   * Limpia el token y resetea el estado de autenticación
+   */
   const logout = () => {
     localStorage.removeItem('authToken');
     setIsAuthenticated(false);
     setAdminUser(null);
   };
 
+  /**
+   * Verifica si el usuario actual tiene uno o más roles específicos
+   * 
+   * @param {string|string[]} roles - Rol o lista de roles a verificar
+   * @returns {boolean} True si el usuario tiene alguno de los roles especificados
+   */
   const hasRole = (roles) => {
     if (!adminUser) return false;
     if (typeof roles === 'string') {
@@ -89,6 +139,12 @@ const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+/**
+ * Hook personalizado para acceder al contexto de autenticación
+ * 
+ * @returns {Object} Contexto de autenticación con métodos y estado
+ * @throws {Error} Si se usa fuera del AuthProvider
+ */
 const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -97,7 +153,14 @@ const useAuth = () => {
   return context;
 };
 
-// Protected Route Component
+/**
+ * Componente de ruta protegida
+ * Verifica autenticación antes de mostrar el contenido
+ * 
+ * @param {Object} props - Props del componente
+ * @param {React.ReactNode} props.children - Componentes a proteger
+ * @returns {React.Component} Contenido protegido o redirección al login
+ */
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   
@@ -115,7 +178,9 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-// Cart Context (existing)
+/**
+ * Contexto del carrito de compras para manejo global del estado
+ */
 const CartContext = React.createContext();
 
 // Components
