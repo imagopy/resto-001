@@ -332,22 +332,43 @@ async def read_admin_me(current_admin: AdminUser = Depends(get_current_admin)):
 @api_router.post("/auth/init-admin")
 async def initialize_default_admin():
     """Initialize default admin user for testing"""
-    default_username = "admin"
-    existing_admin = await get_admin_user(default_username)
+    default_users = [
+        {"username": "admin", "password": "admin123", "role": "admin", "email": "admin@pizzapp.com"},
+        {"username": "manager", "password": "manager123", "role": "manager", "email": "manager@pizzapp.com"},
+        {"username": "kitchen", "password": "kitchen123", "role": "kitchen", "email": "kitchen@pizzapp.com"},
+        {"username": "delivery", "password": "delivery123", "role": "delivery", "email": "delivery@pizzapp.com"}
+    ]
     
-    if existing_admin:
-        return {"message": "Default admin already exists"}
+    created_users = []
+    existing_users = []
     
-    # Create default admin
-    hashed_password = get_password_hash("admin123")
-    admin_user = AdminUser(
-        username=default_username,
-        email="admin@pizzapp.com",
-        hashed_password=hashed_password
-    )
+    for user_data in default_users:
+        existing_user = await get_admin_user(user_data["username"])
+        if existing_user:
+            existing_users.append(user_data["username"])
+            continue
+        
+        # Create user
+        hashed_password = get_password_hash(user_data["password"])
+        admin_user = AdminUser(
+            username=user_data["username"],
+            email=user_data["email"],
+            role=user_data["role"],
+            hashed_password=hashed_password
+        )
+        
+        await db.admin_users.insert_one(admin_user.dict())
+        created_users.append({
+            "username": user_data["username"],
+            "password": user_data["password"],
+            "role": user_data["role"]
+        })
     
-    await db.admin_users.insert_one(admin_user.dict())
-    return {"message": "Default admin created", "username": "admin", "password": "admin123"}
+    return {
+        "message": "Default users initialization completed",
+        "created_users": created_users,
+        "existing_users": existing_users
+    }
 
 # Menu Management
 @api_router.post("/menu", response_model=MenuItem)
