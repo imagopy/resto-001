@@ -266,6 +266,68 @@ async def websocket_client_endpoint(websocket: WebSocket, order_id: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket, "client")
 
+# Authentication endpoints
+@api_router.post("/auth/login", response_model=Token)
+async def login_admin(login_data: LoginRequest):
+    admin = await authenticate_admin(login_data.username, login_data.password)
+    if not admin:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": admin.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@api_router.post("/auth/create-admin", response_model=dict)
+async def create_admin_user(admin_data: AdminUserCreate):
+    # Check if admin already exists
+    existing_admin = await get_admin_user(admin_data.username)
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Admin user already exists")
+    
+    # Create admin user
+    hashed_password = get_password_hash(admin_data.password)
+    admin_user = AdminUser(
+        username=admin_data.username,
+        email=admin_data.email,
+        hashed_password=hashed_password
+    )
+    
+    await db.admin_users.insert_one(admin_user.dict())
+    return {"message": "Admin user created successfully"}
+
+@api_router.get("/auth/me", response_model=dict)
+async def read_admin_me(current_admin: AdminUser = Depends(get_current_admin)):
+    return {
+        "username": current_admin.username,
+        "email": current_admin.email,
+        "is_active": current_admin.is_active
+    }
+
+@api_router.post("/auth/init-admin")
+async def initialize_default_admin():
+    """Initialize default admin user for testing"""
+    default_username = "admin"
+    existing_admin = await get_admin_user(default_username)
+    
+    if existing_admin:
+        return {"message": "Default admin already exists"}
+    
+    # Create default admin
+    hashed_password = get_password_hash("admin123")
+    admin_user = AdminUser(
+        username=default_username,
+        email="admin@pizzapp.com",
+        hashed_password=hashed_password
+    )
+    
+    await db.admin_users.insert_one(admin_user.dict())
+    return {"message": "Default admin created", "username": "admin", "password": "admin123"}
+
 # Menu Management
 @api_router.post("/menu", response_model=MenuItem)
 async def create_menu_item(item: MenuItemCreate):
