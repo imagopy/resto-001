@@ -441,7 +441,7 @@ async def create_order(order_data: OrderCreate):
     return order
 
 @api_router.get("/orders", response_model=List[Order])
-async def get_orders(current_admin: AdminUser = AllRoles):
+async def get_orders(current_admin: AdminUser = Depends(require_role(["admin", "manager", "kitchen", "delivery"]))):
     # Role-based filtering
     if current_admin.role == "kitchen":
         # Kitchen only sees orders that need preparation
