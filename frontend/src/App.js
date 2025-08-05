@@ -120,12 +120,38 @@ const CartContext = React.createContext();
 
 // Components
 const Header = ({ cartItemsCount, onToggleMenu, showMenu }) => {
-  const { isAuthenticated, adminUser, logout } = useAuth();
+  const { isAuthenticated, adminUser, logout, hasRole } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const getRoleName = (role) => {
+    const roleNames = {
+      admin: 'Administrador',
+      manager: 'Gerente',
+      kitchen: 'Cocina',
+      delivery: 'Delivery'
+    };
+    return roleNames[role] || role;
+  };
+
+  const getDashboardUrl = () => {
+    if (!adminUser) return '/login';
+    
+    switch (adminUser.role) {
+      case 'admin':
+      case 'manager':
+        return '/admin';
+      case 'kitchen':
+        return '/kitchen';
+      case 'delivery':
+        return '/delivery';
+      default:
+        return '/admin';
+    }
   };
 
   return (
@@ -146,7 +172,10 @@ const Header = ({ cartItemsCount, onToggleMenu, showMenu }) => {
             <Link to="/menu" className="text-gray-700 hover:text-red-600 transition-colors">Menú</Link>
             <Link to="/track" className="text-gray-700 hover:text-red-600 transition-colors">Seguir Pedido</Link>
             {isAuthenticated ? (
-              <Link to="/admin" className="text-gray-700 hover:text-red-600 transition-colors">Admin</Link>
+              <Link to={getDashboardUrl()} className="text-gray-700 hover:text-red-600 transition-colors">
+                {adminUser.role === 'kitchen' ? 'Cocina' : 
+                 adminUser.role === 'delivery' ? 'Delivery' : 'Admin'}
+              </Link>
             ) : (
               <Link to="/login" className="text-gray-700 hover:text-red-600 transition-colors">Admin</Link>
             )}
@@ -164,7 +193,10 @@ const Header = ({ cartItemsCount, onToggleMenu, showMenu }) => {
 
             {isAuthenticated && (
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Hola, {adminUser?.username}</span>
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">Hola, {adminUser?.username}</div>
+                  <div className="text-xs text-gray-500">{getRoleName(adminUser?.role)}</div>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="p-2 text-gray-700 hover:text-red-600 transition-colors"
@@ -193,12 +225,15 @@ const Header = ({ cartItemsCount, onToggleMenu, showMenu }) => {
               <Link to="/track" className="block px-3 py-2 text-gray-700 hover:text-red-600 transition-colors">Seguir Pedido</Link>
               {isAuthenticated ? (
                 <>
-                  <Link to="/admin" className="block px-3 py-2 text-gray-700 hover:text-red-600 transition-colors">Admin</Link>
+                  <Link to={getDashboardUrl()} className="block px-3 py-2 text-gray-700 hover:text-red-600 transition-colors">
+                    {adminUser.role === 'kitchen' ? 'Cocina' : 
+                     adminUser.role === 'delivery' ? 'Delivery' : 'Admin'}
+                  </Link>
                   <button 
                     onClick={handleLogout}
                     className="block w-full text-left px-3 py-2 text-gray-700 hover:text-red-600 transition-colors"
                   >
-                    Cerrar Sesión
+                    Cerrar Sesión ({getRoleName(adminUser?.role)})
                   </button>
                 </>
               ) : (
