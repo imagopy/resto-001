@@ -390,7 +390,7 @@ async def get_menu_by_category(category: str):
     return [MenuItem(**item) for item in menu_items]
 
 @api_router.put("/menu/{item_id}", response_model=MenuItem)
-async def update_menu_item(item_id: str, item: MenuItemCreate, current_admin: AdminUser = AdminOrManager):
+async def update_menu_item(item_id: str, item: MenuItemCreate, current_admin: AdminUser = Depends(require_role(["admin", "manager"]))):
     updated_item = MenuItem(id=item_id, **item.dict())
     await db.menu_items.replace_one({"id": item_id}, updated_item.dict())
     return updated_item
