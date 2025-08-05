@@ -566,9 +566,9 @@ async def get_available_delivery_persons():
     persons = await db.delivery_persons.find({"is_available": True}).to_list(1000)
     return [DeliveryPerson(**person) for person in persons]
 
-# Analytics endpoints
+# Analytics endpoints (Admin and Manager only)
 @api_router.get("/analytics/today")
-async def get_today_analytics(current_admin: AdminUser = Depends(get_current_admin)):
+async def get_today_analytics(current_admin: AdminUser = AdminOrManager):
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Total orders today
@@ -598,6 +598,54 @@ async def get_today_analytics(current_admin: AdminUser = Depends(get_current_adm
         "orders_by_status": orders_by_status,
         "date": today.isoformat()
     }
+
+# User Management (Admin only)
+@api_router.get("/users", response_model=List[dict])
+async def get_all_users(current_admin: AdminUser = AdminOnly):
+    users = await db.admin_users.find().to_list(1000)
+    return [{
+        "id": user["id"],
+        "username": user["username"],
+        "email": user["email"],
+        "role": user["role"],
+        "is_active": user["is_active"],
+        "created_at": user["created_at"]
+    } for user in users]
+
+@api_router.post("/users", response_model=dict)
+async def create_user(user_data: AdminUserCreate, current_admin: AdminUser = AdminOnly):
+    # Check if user already exists
+    existing_user = await get_admin_user(user_data.username)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    # Create user
+    hashed_password = get_password_hash(user_data.password)
+    new_user = AdminUser(
+        username=user_data.username,
+        email=user_data.email,
+        role=user_data.role,
+        hashed_password=hashed_password
+    )
+    
+    await db.admin_users.insert_one(new_user.dict())
+    return {"message": "User created successfully"}
+
+@api_router.put("/users/{user_id}/role")
+async def update_user_role(user_id: str, new_role: str, current_admin: AdminUser = AdminOnly):
+    valid_roles = ["admin", "manager", "kitchen", "delivery"]
+    if new_role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
+    
+    result = await db.admin_users.update_one(
+        {"id": user_id},
+        {"$set": {"role": new_role}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "User role updated successfully"}
 
 # Initialize sample menu data
 @api_router.post("/initialize-menu")
