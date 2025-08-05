@@ -64,12 +64,34 @@ api_router = APIRouter(prefix="/api")
 
 # WebSocket connection manager for real-time updates
 class ConnectionManager:
+    """
+    Gestor de conexiones WebSocket para comunicación en tiempo real.
+    
+    Mantiene conexiones separadas para diferentes tipos de usuarios:
+    - Admin: Recibe todas las notificaciones
+    - Delivery: Recibe notificaciones de entregas
+    - Client: Recibe actualizaciones de sus pedidos
+    
+    Attributes:
+        active_connections (List[WebSocket]): Conexiones de clientes
+        admin_connections (List[WebSocket]): Conexiones de administradores
+        delivery_connections (List[WebSocket]): Conexiones de repartidores
+    """
+    
     def __init__(self):
+        """Inicializa las listas de conexiones vacías."""
         self.active_connections: List[WebSocket] = []
         self.admin_connections: List[WebSocket] = []
         self.delivery_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket, connection_type: str = "client"):
+        """
+        Acepta una nueva conexión WebSocket y la clasifica por tipo.
+        
+        Args:
+            websocket (WebSocket): La conexión WebSocket a aceptar
+            connection_type (str): Tipo de conexión ("admin", "delivery", "client")
+        """
         await websocket.accept()
         if connection_type == "admin":
             self.admin_connections.append(websocket)
@@ -79,6 +101,13 @@ class ConnectionManager:
             self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket, connection_type: str = "client"):
+        """
+        Desconecta y remueve una conexión WebSocket.
+        
+        Args:
+            websocket (WebSocket): La conexión a desconectar
+            connection_type (str): Tipo de conexión a remover
+        """
         if connection_type == "admin" and websocket in self.admin_connections:
             self.admin_connections.remove(websocket)
         elif connection_type == "delivery" and websocket in self.delivery_connections:
@@ -87,9 +116,22 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
+        """
+        Envía un mensaje personal a una conexión específica.
+        
+        Args:
+            message (str): Mensaje a enviar
+            websocket (WebSocket): Conexión de destino
+        """
         await websocket.send_text(message)
 
     async def broadcast_to_admins(self, message: dict):
+        """
+        Envía un mensaje a todas las conexiones de administradores.
+        
+        Args:
+            message (dict): Mensaje a transmitir
+        """
         for connection in self.admin_connections:
             try:
                 await connection.send_text(json.dumps(message))
@@ -97,6 +139,12 @@ class ConnectionManager:
                 self.admin_connections.remove(connection)
 
     async def broadcast_to_delivery(self, message: dict):
+        """
+        Envía un mensaje a todas las conexiones de repartidores.
+        
+        Args:
+            message (dict): Mensaje a transmitir
+        """
         for connection in self.delivery_connections:
             try:
                 await connection.send_text(json.dumps(message))
@@ -104,6 +152,12 @@ class ConnectionManager:
                 self.delivery_connections.remove(connection)
 
     async def broadcast_to_clients(self, message: dict):
+        """
+        Envía un mensaje a todas las conexiones de clientes.
+        
+        Args:
+            message (dict): Mensaje a transmitir
+        """
         for connection in self.active_connections:
             try:
                 await connection.send_text(json.dumps(message))
