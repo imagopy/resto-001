@@ -69,12 +69,21 @@ const AuthProvider = ({ children }) => {
     setAdminUser(null);
   };
 
+  const hasRole = (roles) => {
+    if (!adminUser) return false;
+    if (typeof roles === 'string') {
+      return adminUser.role === roles;
+    }
+    return roles.includes(adminUser.role);
+  };
+
   const value = {
     isAuthenticated,
     adminUser,
     loading,
     login,
-    logout
+    logout,
+    hasRole
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
