@@ -167,13 +167,42 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # Authentication Functions
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verifica si una contraseña en texto plano coincide con su hash.
+    
+    Args:
+        plain_password (str): Contraseña en texto plano
+        hashed_password (str): Hash de la contraseña almacenada
+        
+    Returns:
+        bool: True si las contraseñas coinciden, False caso contrario
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
+    """
+    Genera un hash seguro de una contraseña usando bcrypt.
+    
+    Args:
+        password (str): Contraseña en texto plano
+        
+    Returns:
+        str: Hash de la contraseña
+    """
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Crea un token JWT con los datos proporcionados.
+    
+    Args:
+        data (dict): Datos a incluir en el token (típicamente {"sub": username})
+        expires_delta (Optional[timedelta]): Tiempo de expiración personalizado
+        
+    Returns:
+        str: Token JWT codificado
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -184,12 +213,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 async def get_admin_user(username: str):
+    """
+    Busca un usuario administrador por nombre de usuario.
+    
+    Args:
+        username (str): Nombre de usuario a buscar
+        
+    Returns:
+        Optional[AdminUser]: Usuario encontrado o None si no existe
+    """
     admin = await db.admin_users.find_one({"username": username})
     if admin:
         return AdminUser(**admin)
     return None
 
 async def authenticate_admin(username: str, password: str):
+    """
+    Autentica un usuario administrador con credenciales.
+    
+    Args:
+        username (str): Nombre de usuario
+        password (str): Contraseña en texto plano
+        
+    Returns:
+        Optional[AdminUser]: Usuario autenticado o None si las credenciales son inválidas
+    """
     admin = await get_admin_user(username)
     if not admin:
         return False
@@ -198,6 +246,18 @@ async def authenticate_admin(username: str, password: str):
     return admin
 
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Obtiene el usuario actual desde el token JWT.
+    
+    Args:
+        credentials (HTTPAuthorizationCredentials): Credenciales Bearer del header
+        
+    Returns:
+        AdminUser: Usuario autenticado
+        
+    Raises:
+        HTTPException: Si el token es inválido o el usuario no existe
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -219,7 +279,28 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
 
 # Role-based access control functions
 def require_role(allowed_roles: List[str]):
-    def role_checker(current_admin: AdminUser = Depends(get_current_admin)):
+    """
+    Decorator factory para validar roles de usuario.
+    
+    Args:
+        allowed_roles (List[str]): Lista de roles permitidos
+        
+    Returns:
+        function: Función decoradora que valida el rol del usuario
+    """
+    def role_checker(current_admin = Depends(get_current_admin)):
+        """
+        Valida que el usuario actual tenga uno de los roles permitidos.
+        
+        Args:
+            current_admin (AdminUser): Usuario actual obtenido del token
+            
+        Returns:
+            AdminUser: Usuario validado
+            
+        Raises:
+            HTTPException: Si el usuario no tiene el rol requerido
+        """
         if current_admin.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
