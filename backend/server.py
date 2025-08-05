@@ -408,7 +408,7 @@ async def get_order(order_id: str):
     return Order(**order)
 
 @api_router.put("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status_update: OrderStatusUpdate):
+async def update_order_status(order_id: str, status_update: OrderStatusUpdate, current_admin: AdminUser = Depends(get_current_admin)):
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
