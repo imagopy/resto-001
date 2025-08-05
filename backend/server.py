@@ -440,7 +440,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, c
     return {"message": "Order status updated successfully"}
 
 @api_router.get("/orders/status/{status}", response_model=List[Order])
-async def get_orders_by_status(status: str):
+async def get_orders_by_status(status: str, current_admin: AdminUser = Depends(get_current_admin)):
     orders = await db.orders.find({"status": status}).sort("created_at", -1).to_list(1000)
     return [Order(**order) for order in orders]
 
