@@ -463,7 +463,7 @@ async def get_available_delivery_persons():
 
 # Analytics endpoints
 @api_router.get("/analytics/today")
-async def get_today_analytics():
+async def get_today_analytics(current_admin: AdminUser = Depends(get_current_admin)):
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Total orders today
