@@ -2006,6 +2006,16 @@ function App() {
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/kitchen" element={
+                <ProtectedRoute>
+                  <KitchenDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/delivery" element={
+                <ProtectedRoute>
+                  <DeliveryDashboard />
+                </ProtectedRoute>
+              } />
             </Routes>
             <Footer />
           </BrowserRouter>
