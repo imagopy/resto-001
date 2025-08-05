@@ -329,6 +329,24 @@ def get_all_roles():
 
 # Authentication Models
 class AdminUser(BaseModel):
+    """
+    Modelo para usuarios administrativos del sistema.
+    
+    Representa los diferentes tipos de usuarios que pueden acceder al sistema:
+    - admin: Acceso completo
+    - manager: Gestión operativa
+    - kitchen: Solo cocina
+    - delivery: Solo entregas
+    
+    Attributes:
+        id (str): Identificador único UUID
+        username (str): Nombre de usuario único
+        email (str): Correo electrónico del usuario
+        hashed_password (str): Contraseña hasheada con bcrypt
+        role (str): Rol del usuario en el sistema
+        is_active (bool): Si el usuario está activo
+        created_at (datetime): Fecha de creación del usuario
+    """
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str
     email: str
@@ -338,23 +356,68 @@ class AdminUser(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class AdminUserCreate(BaseModel):
+    """
+    Modelo para crear nuevos usuarios administrativos.
+    
+    Attributes:
+        username (str): Nombre de usuario (debe ser único)
+        email (str): Correo electrónico
+        password (str): Contraseña en texto plano (será hasheada)
+        role (str): Rol a asignar al usuario
+    """
     username: str
     email: str
     password: str
     role: str = "admin"
 
 class Token(BaseModel):
+    """
+    Modelo para respuesta de autenticación JWT.
+    
+    Attributes:
+        access_token (str): Token JWT generado
+        token_type (str): Tipo de token (siempre "bearer")
+    """
     access_token: str
     token_type: str
 
 class TokenData(BaseModel):
+    """
+    Modelo para datos extraídos del token JWT.
+    
+    Attributes:
+        username (Optional[str]): Nombre de usuario extraído del token
+    """
     username: Optional[str] = None
 
 class LoginRequest(BaseModel):
+    """
+    Modelo para solicitud de inicio de sesión.
+    
+    Attributes:
+        username (str): Nombre de usuario
+        password (str): Contraseña en texto plano
+    """
     username: str
     password: str
 
 class MenuItem(BaseModel):
+    """
+    Modelo para productos del menú.
+    
+    Representa un producto disponible en el menú de la pizzería.
+    
+    Attributes:
+        id (str): Identificador único UUID
+        name (str): Nombre del producto
+        description (str): Descripción detallada
+        price (float): Precio en Guaraníes
+        category (str): Categoría del producto
+        image_url (str): URL de la imagen del producto
+        available (bool): Si el producto está disponible
+        preparation_time (int): Tiempo de preparación en minutos
+        created_at (datetime): Fecha de creación
+    """
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     description: str
@@ -366,6 +429,18 @@ class MenuItem(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class MenuItemCreate(BaseModel):
+    """
+    Modelo para crear nuevos productos del menú.
+    
+    Attributes:
+        name (str): Nombre del producto
+        description (str): Descripción del producto
+        price (float): Precio en Guaraníes
+        category (str): Categoría (pizzas, hamburguesas, bebidas, acompañamientos)
+        image_url (str): URL de la imagen
+        available (bool): Disponibilidad del producto
+        preparation_time (int): Tiempo de preparación en minutos
+    """
     name: str
     description: str
     price: float
@@ -375,11 +450,33 @@ class MenuItemCreate(BaseModel):
     preparation_time: int = 15
 
 class CartItem(BaseModel):
+    """
+    Modelo para elementos del carrito de compras.
+    
+    Attributes:
+        menu_item_id (str): ID del producto del menú
+        quantity (int): Cantidad solicitada
+        special_instructions (Optional[str]): Instrucciones especiales
+    """
     menu_item_id: str
     quantity: int
     special_instructions: Optional[str] = ""
 
 class DeliveryInfo(BaseModel):
+    """
+    Modelo para información de entrega.
+    
+    Contiene todos los datos necesarios para realizar la entrega
+    en Paraguay, específicamente en Asunción y Gran Asunción.
+    
+    Attributes:
+        customer_name (str): Nombre completo del cliente
+        customer_phone (str): Teléfono de contacto
+        delivery_address (str): Dirección completa de entrega
+        delivery_zone (str): Zona de entrega en Paraguay
+        latitude (Optional[float]): Coordenada de latitud (opcional)
+        longitude (Optional[float]): Coordenada de longitud (opcional)
+    """
     customer_name: str
     customer_phone: str
     delivery_address: str
