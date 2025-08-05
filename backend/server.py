@@ -146,6 +146,7 @@ class AdminUser(BaseModel):
     username: str
     email: str
     hashed_password: str
+    role: str = "admin"  # admin, manager, kitchen, delivery
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -153,6 +154,7 @@ class AdminUserCreate(BaseModel):
     username: str
     email: str
     password: str
+    role: str = "admin"
 
 class Token(BaseModel):
     access_token: str
