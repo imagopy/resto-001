@@ -372,7 +372,7 @@ async def initialize_default_admin():
 
 # Menu Management (Admin/Manager only)
 @api_router.post("/menu", response_model=MenuItem)
-async def create_menu_item(item: MenuItemCreate, current_admin: AdminUser = AdminOrManager):
+async def create_menu_item(item: MenuItemCreate, current_admin: AdminUser = Depends(require_role(["admin", "manager"]))):
     menu_item = MenuItem(**item.dict())
     await db.menu_items.insert_one(menu_item.dict())
     return menu_item
