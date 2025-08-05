@@ -1192,6 +1192,423 @@ const TrackOrder = () => {
   );
 };
 
+const KitchenDashboard = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const { adminUser } = useAuth();
+
+  const kitchenStatuses = {
+    'received': { label: 'Recibido', color: 'bg-blue-100 text-blue-800', action: 'Confirmar' },
+    'confirmed': { label: 'Confirmado', color: 'bg-yellow-100 text-yellow-800', action: 'Preparar' },
+    'preparing': { label: 'Preparando', color: 'bg-orange-100 text-orange-800', action: 'Listo' },
+    'ready': { label: 'Listo', color: 'bg-green-100 text-green-800', action: null }
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 15000); // Refresh more frequently for kitchen
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get(`${API}/orders`, {
+        headers: getAuthHeaders()
+      });
+      setOrders(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/status`, 
+        { status: newStatus },
+        { headers: getAuthHeaders() }
+      );
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Error al actualizar el estado del pedido');
+    }
+  };
+
+  const getNextStatus = (currentStatus) => {
+    const transitions = {
+      'received': 'confirmed',
+      'confirmed': 'preparing',
+      'preparing': 'ready'
+    };
+    return transitions[currentStatus];
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('es-PY', {
+      style: 'currency',
+      currency: 'PYG',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
+
+  const filteredOrders = selectedStatus === 'all' 
+    ? orders 
+    : orders.filter(order => order.status === selectedStatus);
+
+  if (loading) {
+    return (
+      <div className="pt-16 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Cargando pedidos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-16 min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            🍳 Panel de Cocina - {adminUser?.username}
+          </h1>
+          <p className="text-gray-600">Gestiona la preparación de pedidos</p>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => setSelectedStatus('all')}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
+              selectedStatus === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Todos ({orders.length})
+          </button>
+          
+          {Object.entries(kitchenStatuses).map(([status, config]) => {
+            const count = orders.filter(order => order.status === status).length;
+            return (
+              <button
+                key={status}
+                onClick={() => setSelectedStatus(status)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
+                  selectedStatus === status
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {config.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Orders Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredOrders.map(order => (
+            <div key={order.id} className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Pedido #{order.id.substring(0, 8)}
+                  </h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${kitchenStatuses[order.status]?.color}`}>
+                      {kitchenStatuses[order.status]?.label}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(order.created_at).toLocaleTimeString('es-PY', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-red-600">{formatPrice(order.total)}</p>
+                  <p className="text-sm text-gray-600">{order.items.length} productos</p>
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="font-semibold text-gray-900">{order.delivery_info.customer_name}</p>
+                <p className="text-sm text-gray-600">{order.delivery_info.customer_phone}</p>
+              </div>
+
+              {/* Order Items */}
+              <div className="mb-4">
+                <h4 className="font-semibold text-gray-900 mb-2">Productos:</h4>
+                <div className="space-y-2">
+                  {order.items.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="font-medium">Item #{item.menu_item_id.substring(0, 8)}</span>
+                      <span className="text-sm text-gray-600">x{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Special Instructions */}
+              {order.delivery_notes && (
+                <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Notas:</strong> {order.delivery_notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Button */}
+              {kitchenStatuses[order.status]?.action && (
+                <button
+                  onClick={() => updateOrderStatus(order.id, getNextStatus(order.status))}
+                  className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white py-3 rounded-xl font-semibold transition-all duration-300"
+                >
+                  {kitchenStatuses[order.status].action}
+                </button>
+              )}
+
+              {order.status === 'ready' && (
+                <div className="w-full bg-green-100 text-green-800 py-3 rounded-xl font-semibold text-center">
+                  ✅ Listo para Delivery
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {filteredOrders.length === 0 && (
+          <div className="text-center py-16">
+            <ChefHat className="h-24 w-24 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay pedidos</h3>
+            <p className="text-gray-600">
+              {selectedStatus === 'all' 
+                ? 'No hay pedidos para preparar en este momento.' 
+                : `No hay pedidos con estado "${kitchenStatuses[selectedStatus]?.label}".`
+              }
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DeliveryDashboard = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState('ready');
+  const { adminUser } = useAuth();
+
+  const deliveryStatuses = {
+    'ready': { label: 'Listo para Entregar', color: 'bg-green-100 text-green-800', action: 'Tomar Pedido' },
+    'on_route': { label: 'En Camino', color: 'bg-blue-100 text-blue-800', action: 'Marcar Entregado' },
+    'delivered': { label: 'Entregado', color: 'bg-gray-100 text-gray-800', action: null }
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get(`${API}/orders`, {
+        headers: getAuthHeaders()
+      });
+      setOrders(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/status`, 
+        { status: newStatus },
+        { headers: getAuthHeaders() }
+      );
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Error al actualizar el estado del pedido');
+    }
+  };
+
+  const getNextStatus = (currentStatus) => {
+    const transitions = {
+      'ready': 'on_route',
+      'on_route': 'delivered'
+    };
+    return transitions[currentStatus];
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('es-PY', {
+      style: 'currency',
+      currency: 'PYG',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (selectedStatus === 'all') return true;
+    return order.status === selectedStatus;
+  });
+
+  if (loading) {
+    return (
+      <div className="pt-16 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Cargando entregas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-16 min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            🚚 Panel de Delivery - {adminUser?.username}
+          </h1>
+          <p className="text-gray-600">Gestiona las entregas de pedidos</p>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {Object.entries(deliveryStatuses).map(([status, config]) => {
+            const count = orders.filter(order => order.status === status).length;
+            return (
+              <button
+                key={status}
+                onClick={() => setSelectedStatus(status)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
+                  selectedStatus === status
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {config.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Orders List */}
+        <div className="space-y-4">
+          {filteredOrders.map(order => (
+            <div key={order.id} className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Order Info */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Pedido #{order.id.substring(0, 8)}
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${deliveryStatuses[order.status]?.color}`}>
+                        {deliveryStatuses[order.status]?.label}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      Pedido: {new Date(order.created_at).toLocaleTimeString('es-PY', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                    <p className="text-xl font-bold text-red-600">{formatPrice(order.total)}</p>
+                  </div>
+                </div>
+
+                {/* Customer & Address */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Cliente y Dirección</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">{order.delivery_info.customer_name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{order.delivery_info.customer_phone}</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">{order.delivery_info.delivery_address}</p>
+                        <p className="text-xs text-gray-500">Zona: {order.delivery_info.delivery_zone}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action */}
+                <div className="flex flex-col justify-center">
+                  {deliveryStatuses[order.status]?.action && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, getNextStatus(order.status))}
+                      className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300"
+                    >
+                      {deliveryStatuses[order.status].action}
+                    </button>
+                  )}
+
+                  {order.status === 'delivered' && (
+                    <div className="bg-green-100 text-green-800 py-3 px-6 rounded-xl font-semibold text-center">
+                      ✅ Entregado
+                    </div>
+                  )}
+
+                  {order.delivery_notes && (
+                    <div className="mt-3 p-3 bg-yellow-50 rounded-lg">
+                      <p className="text-xs text-yellow-800">
+                        <strong>Notas:</strong> {order.delivery_notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredOrders.length === 0 && (
+          <div className="text-center py-16">
+            <Truck className="h-24 w-24 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay entregas</h3>
+            <p className="text-gray-600">
+              No hay pedidos {deliveryStatuses[selectedStatus]?.label.toLowerCase()} en este momento.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
