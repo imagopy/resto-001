@@ -1498,27 +1498,34 @@ function App() {
   };
 
   return (
-    <CartContext.Provider value={cartContextValue}>
-      <div className="App">
-        <BrowserRouter>
-          <Header 
-            cartItemsCount={getTotalItems()} 
-            onToggleMenu={() => setShowMobileMenu(!showMobileMenu)}
-            showMenu={showMobileMenu}
-          />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/menu" element={<Menu />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/track" element={<TrackOrder />} />
-            <Route path="/track/:id" element={<TrackOrder />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Routes>
-          <Footer />
-        </BrowserRouter>
-      </div>
-    </CartContext.Provider>
+    <AuthProvider>
+      <CartContext.Provider value={cartContextValue}>
+        <div className="App">
+          <BrowserRouter>
+            <Header 
+              cartItemsCount={getTotalItems()} 
+              onToggleMenu={() => setShowMobileMenu(!showMobileMenu)}
+              showMenu={showMobileMenu}
+            />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/menu" element={<Menu />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/track" element={<TrackOrder />} />
+              <Route path="/track/:id" element={<TrackOrder />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+            </Routes>
+            <Footer />
+          </BrowserRouter>
+        </div>
+      </CartContext.Provider>
+    </AuthProvider>
   );
 }
 
