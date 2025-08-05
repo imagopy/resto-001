@@ -970,14 +970,22 @@ const Login = () => {
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600 mb-4">
-              ¿Primera vez? Inicializa el admin por defecto:
+              ¿Primera vez? Inicializa usuarios por defecto:
             </p>
             <button
               onClick={handleInitializeAdmin}
-              className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100 py-3 rounded-xl font-semibold transition-all duration-300"
+              className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100 py-3 rounded-xl font-semibold transition-all duration-300 mb-4"
             >
-              Crear Admin por Defecto
+              Crear Usuarios por Defecto
             </button>
+            
+            <div className="text-xs text-gray-500 space-y-1">
+              <p><strong>Roles disponibles:</strong></p>
+              <p>👑 <strong>admin</strong> - Acceso completo al sistema</p>
+              <p>👔 <strong>manager</strong> - Gestión operativa</p>
+              <p>👨‍🍳 <strong>kitchen</strong> - Solo gestión de cocina</p>
+              <p>🚚 <strong>delivery</strong> - Solo gestión de entregas</p>
+            </div>
           </div>
         </div>
 
