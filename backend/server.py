@@ -149,12 +149,21 @@ def require_role(allowed_roles: List[str]):
         return current_admin
     return role_checker
 
-# Role dependencies
-AdminOnly = Depends(require_role(["admin"]))
-AdminOrManager = Depends(require_role(["admin", "manager"]))
-KitchenStaff = Depends(require_role(["admin", "manager", "kitchen"]))
-DeliveryStaff = Depends(require_role(["admin", "manager", "delivery"]))
-AllRoles = Depends(require_role(["admin", "manager", "kitchen", "delivery"]))
+# Role dependencies (defined after AdminUser model)
+def get_admin_only():
+    return require_role(["admin"])
+
+def get_admin_or_manager():
+    return require_role(["admin", "manager"])
+
+def get_kitchen_staff():
+    return require_role(["admin", "manager", "kitchen"])
+
+def get_delivery_staff():
+    return require_role(["admin", "manager", "delivery"])
+
+def get_all_roles():
+    return require_role(["admin", "manager", "kitchen", "delivery"])
 
 # Define Models
 
