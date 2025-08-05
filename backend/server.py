@@ -613,7 +613,7 @@ async def get_all_users(current_admin: AdminUser = Depends(require_role(["admin"
     } for user in users]
 
 @api_router.post("/users", response_model=dict)
-async def create_user(user_data: AdminUserCreate, current_admin: AdminUser = AdminOnly):
+async def create_user(user_data: AdminUserCreate, current_admin: AdminUser = Depends(require_role(["admin"]))):
     # Check if user already exists
     existing_user = await get_admin_user(user_data.username)
     if existing_user:
