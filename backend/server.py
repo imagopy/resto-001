@@ -396,7 +396,7 @@ async def update_menu_item(item_id: str, item: MenuItemCreate, current_admin: Ad
     return updated_item
 
 @api_router.delete("/menu/{item_id}")
-async def delete_menu_item(item_id: str, current_admin: AdminUser = AdminOrManager):
+async def delete_menu_item(item_id: str, current_admin: AdminUser = Depends(require_role(["admin", "manager"]))):
     await db.menu_items.update_one({"id": item_id}, {"$set": {"available": False}})
     return {"message": "Menu item deleted successfully"}
 
