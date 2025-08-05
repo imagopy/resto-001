@@ -87,6 +87,57 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Authentication Functions
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_admin_user(username: str):
+    admin = await db.admin_users.find_one({"username": username})
+    if admin:
+        return AdminUser(**admin)
+    return None
+
+async def authenticate_admin(username: str, password: str):
+    admin = await get_admin_user(username)
+    if not admin:
+        return False
+    if not verify_password(password, admin.hashed_password):
+        return False
+    return admin
+
+async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    
+    admin = await get_admin_user(username=token_data.username)
+    if admin is None:
+        raise credentials_exception
+    return admin
+
 # Define Models
 
 # Authentication Models
