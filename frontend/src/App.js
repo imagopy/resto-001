@@ -888,13 +888,27 @@ const Login = () => {
   const handleInitializeAdmin = async () => {
     try {
       const response = await axios.post(`${API}/auth/init-admin`);
-      alert('Admin por defecto creado: username="admin", password="admin123"');
-    } catch (error) {
-      if (error.response?.status === 200) {
-        alert('Admin por defecto ya existe: username="admin", password="admin123"');
-      } else {
-        alert('Error al crear admin por defecto');
+      const data = response.data;
+      
+      let message = 'Usuarios por defecto:\n\n';
+      
+      if (data.created_users && data.created_users.length > 0) {
+        message += 'CREADOS:\n';
+        data.created_users.forEach(user => {
+          message += `• ${user.role.toUpperCase()}: ${user.username} / ${user.password}\n`;
+        });
       }
+      
+      if (data.existing_users && data.existing_users.length > 0) {
+        message += '\nYA EXISTÍAN:\n';
+        data.existing_users.forEach(username => {
+          message += `• ${username}\n`;
+        });
+      }
+      
+      alert(message);
+    } catch (error) {
+      alert('Error al crear usuarios por defecto');
     }
   };
 
