@@ -220,8 +220,8 @@ async def create_order(order_data: OrderCreate):
     total = subtotal + delivery_fee
     
     # Calculate estimated delivery time (30-60 minutes)
-    estimated_delivery = datetime.utcnow().replace(microsecond=0)
-    estimated_delivery = estimated_delivery.replace(minute=estimated_delivery.minute + 45)
+    from datetime import timedelta
+    estimated_delivery = datetime.utcnow().replace(microsecond=0) + timedelta(minutes=45)
     
     order = Order(
         items=order_data.items,
