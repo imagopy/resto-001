@@ -396,7 +396,7 @@ async def create_order(order_data: OrderCreate):
     return order
 
 @api_router.get("/orders", response_model=List[Order])
-async def get_orders():
+async def get_orders(current_admin: AdminUser = Depends(get_current_admin)):
     orders = await db.orders.find().sort("created_at", -1).to_list(1000)
     return [Order(**order) for order in orders]
 
