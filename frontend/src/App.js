@@ -1131,6 +1131,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [analytics, setAnalytics] = useState(null);
+  const { adminUser } = useAuth();
 
   const orderStatuses = {
     'received': { label: 'Recibido', color: 'bg-blue-100 text-blue-800' },
@@ -1140,6 +1141,12 @@ const AdminDashboard = () => {
     'on_route': { label: 'En Camino', color: 'bg-purple-100 text-purple-800' },
     'delivered': { label: 'Entregado', color: 'bg-green-100 text-green-800' },
     'cancelled': { label: 'Cancelado', color: 'bg-red-100 text-red-800' }
+  };
+
+  // Get auth token for API calls
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   useEffect(() => {
@@ -1156,18 +1163,26 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`${API}/orders`);
+      const response = await axios.get(`${API}/orders`, {
+        headers: getAuthHeaders()
+      });
       setOrders(response.data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      if (error.response?.status === 401) {
+        // Handle unauthorized - could redirect to login
+        alert('Sesión expirada. Por favor inicia sesión nuevamente.');
+      }
       setLoading(false);
     }
   };
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`${API}/analytics/today`);
+      const response = await axios.get(`${API}/analytics/today`, {
+        headers: getAuthHeaders()
+      });
       setAnalytics(response.data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -1176,7 +1191,10 @@ const AdminDashboard = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      await axios.put(`${API}/orders/${orderId}/status`, { status: newStatus });
+      await axios.put(`${API}/orders/${orderId}/status`, 
+        { status: newStatus },
+        { headers: getAuthHeaders() }
+      );
       fetchOrders(); // Refresh orders
     } catch (error) {
       console.error('Error updating order status:', error);
