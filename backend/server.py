@@ -529,7 +529,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, c
     return {"message": "Order status updated successfully"}
 
 @api_router.get("/orders/status/{status}", response_model=List[Order])
-async def get_orders_by_status(status: str, current_admin: AdminUser = AllRoles):
+async def get_orders_by_status(status: str, current_admin: AdminUser = Depends(require_role(["admin", "manager", "kitchen", "delivery"]))):
     # Role-based filtering combined with status filter
     query = {"status": status}
     
