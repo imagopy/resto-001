@@ -1,0 +1,701 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "PizzApp API",
+    "description": "API completa para gestión de pizzería con autenticación basada en roles",
+    "version": "1.0.0",
+    "contact": {
+      "name": "PizzApp Support",
+      "email": "support@pizzapp.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8001",
+      "description": "Servidor de desarrollo"
+    },
+    {
+      "url": "https://api-pizzapp.com",
+      "description": "Servidor de producción"
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Autenticación y gestión de usuarios"
+    },
+    {
+      "name": "menu",
+      "description": "Gestión del menú de productos"
+    },
+    {
+      "name": "orders",
+      "description": "Gestión de pedidos"
+    },
+    {
+      "name": "analytics",
+      "description": "Analytics y reportes"
+    },
+    {
+      "name": "delivery",
+      "description": "Gestión de repartidores"
+    },
+    {
+      "name": "users",
+      "description": "Gestión de usuarios del sistema"
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Iniciar sesión",
+        "description": "Autentica un usuario y devuelve un token JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "username": "admin",
+                "password": "admin123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales incorrectas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "Obtener información del usuario actual",
+        "description": "Devuelve la información del usuario autenticado",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Información del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token inválido o expirado"
+          }
+        }
+      }
+    },
+    "/api/auth/init-admin": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Inicializar usuarios por defecto",
+        "description": "Crea usuarios por defecto para testing (admin, manager, kitchen, delivery)",
+        "responses": {
+          "200": {
+            "description": "Usuarios inicializados correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InitUsersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/menu": {
+      "get": {
+        "tags": ["menu"],
+        "summary": "Obtener menú completo",
+        "description": "Devuelve todos los productos disponibles del menú",
+        "responses": {
+          "200": {
+            "description": "Lista de productos del menú",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MenuItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["menu"],
+        "summary": "Crear producto del menú",
+        "description": "Crea un nuevo producto en el menú (requiere rol Admin/Manager)",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuItemCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Producto creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para esta operación"
+          }
+        }
+      }
+    },
+    "/api/menu/category/{category}": {
+      "get": {
+        "tags": ["menu"],
+        "summary": "Obtener productos por categoría",
+        "description": "Devuelve productos de una categoría específica",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["pizzas", "hamburguesas", "bebidas", "acompañamientos"]
+            },
+            "description": "Categoría de productos"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de productos de la categoría",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MenuItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "Obtener pedidos",
+        "description": "Devuelve pedidos filtrados por rol del usuario",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de pedidos según rol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["orders"],
+        "summary": "Crear pedido",
+        "description": "Crea un nuevo pedido (endpoint público para clientes)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pedido creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{order_id}": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "Obtener pedido específico",
+        "description": "Devuelve información de un pedido específico (para tracking)",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Información del pedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pedido no encontrado"
+          }
+        }
+      }
+    },
+    "/api/orders/{order_id}/status": {
+      "put": {
+        "tags": ["orders"],
+        "summary": "Actualizar estado del pedido",
+        "description": "Actualiza el estado de un pedido con restricciones por rol",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado actualizado correctamente"
+          },
+          "403": {
+            "description": "Sin permisos para cambiar a este estado"
+          },
+          "404": {
+            "description": "Pedido no encontrado"
+          }
+        }
+      }
+    },
+    "/api/analytics/today": {
+      "get": {
+        "tags": ["analytics"],
+        "summary": "Analytics del día",
+        "description": "Obtiene estadísticas de ventas del día actual (Admin/Manager)",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Estadísticas del día",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAnalytics"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para ver analytics"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Nombre de usuario"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña"
+          }
+        }
+      },
+      "Token": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "Token JWT"
+          },
+          "token_type": {
+            "type": "string",
+            "description": "Tipo de token",
+            "example": "bearer"
+          }
+        }
+      },
+      "UserInfo": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["admin", "manager", "kitchen", "delivery"]
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MenuItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del producto"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del producto"
+          },
+          "price": {
+            "type": "number",
+            "description": "Precio en Guaraníes"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["pizzas", "hamburguesas", "bebidas", "acompañamientos"]
+          },
+          "image_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "available": {
+            "type": "boolean",
+            "default": true
+          },
+          "preparation_time": {
+            "type": "integer",
+            "description": "Tiempo de preparación en minutos"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MenuItemCreate": {
+        "type": "object",
+        "required": ["name", "description", "price", "category", "image_url"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["pizzas", "hamburguesas", "bebidas", "acompañamientos"]
+          },
+          "image_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "available": {
+            "type": "boolean",
+            "default": true
+          },
+          "preparation_time": {
+            "type": "integer",
+            "default": 15
+          }
+        }
+      },
+      "CartItem": {
+        "type": "object",
+        "required": ["menu_item_id", "quantity"],
+        "properties": {
+          "menu_item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "special_instructions": {
+            "type": "string",
+            "description": "Instrucciones especiales para el producto"
+          }
+        }
+      },
+      "DeliveryInfo": {
+        "type": "object",
+        "required": ["customer_name", "customer_phone", "delivery_address", "delivery_zone"],
+        "properties": {
+          "customer_name": {
+            "type": "string",
+            "description": "Nombre del cliente"
+          },
+          "customer_phone": {
+            "type": "string",
+            "description": "Teléfono del cliente"
+          },
+          "delivery_address": {
+            "type": "string",
+            "description": "Dirección de entrega"
+          },
+          "delivery_zone": {
+            "type": "string",
+            "enum": ["centro", "san_lorenzo", "lambare", "fernando_mora"],
+            "description": "Zona de entrega en Paraguay"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "Latitud (opcional)"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Longitud (opcional)"
+          }
+        }
+      },
+      "OrderCreate": {
+        "type": "object",
+        "required": ["items", "delivery_info"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "delivery_info": {
+            "$ref": "#/components/schemas/DeliveryInfo"
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": ["cash", "card", "transfer"],
+            "default": "cash"
+          },
+          "delivery_notes": {
+            "type": "string",
+            "description": "Notas adicionales para la entrega"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "delivery_info": {
+            "$ref": "#/components/schemas/DeliveryInfo"
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Subtotal en Guaraníes"
+          },
+          "delivery_fee": {
+            "type": "number",
+            "description": "Costo de envío en Guaraníes"
+          },
+          "total": {
+            "type": "number",
+            "description": "Total a pagar en Guaraníes"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["received", "confirmed", "preparing", "ready", "on_route", "delivered", "cancelled"]
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": ["cash", "card", "transfer"]
+          },
+          "estimated_delivery": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assigned_delivery_person": {
+            "type": "string",
+            "description": "ID del repartidor asignado"
+          },
+          "delivery_notes": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderStatusUpdate": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["received", "confirmed", "preparing", "ready", "on_route", "delivered", "cancelled"]
+          },
+          "assigned_delivery_person": {
+            "type": "string",
+            "description": "ID del repartidor (opcional)"
+          }
+        }
+      },
+      "TodayAnalytics": {
+        "type": "object",
+        "properties": {
+          "total_orders": {
+            "type": "integer",
+            "description": "Total de pedidos del día"
+          },
+          "total_revenue": {
+            "type": "number",
+            "description": "Ingresos totales en Guaraníes"
+          },
+          "orders_by_status": {
+            "type": "object",
+            "description": "Conteo de pedidos por estado"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha de las estadísticas"
+          }
+        }
+      },
+      "InitUsersResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "created_users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "username": {"type": "string"},
+                "password": {"type": "string"},
+                "role": {"type": "string"}
+              }
+            }
+          },
+          "existing_users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "HTTPError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Descripción del error"
+          }
+        }
+      }
+    }
+  }
+}
