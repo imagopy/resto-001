@@ -325,6 +325,7 @@ async def read_admin_me(current_admin: AdminUser = Depends(get_current_admin)):
     return {
         "username": current_admin.username,
         "email": current_admin.email,
+        "role": current_admin.role,
         "is_active": current_admin.is_active
     }
 
